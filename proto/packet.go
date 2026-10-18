@@ -66,3 +66,7 @@ func Decode(b []byte) (*Packet, error) {
 	}
 	return p, nil
 }
+
+func (f Flags) Has(flag Flags) bool {
+    return f&flag != 0
+}

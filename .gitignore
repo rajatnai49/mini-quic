@@ -1,0 +1,7 @@
+/server
+/client
+
+in.bin
+out.bin
+
+*.log
