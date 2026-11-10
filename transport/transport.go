@@ -10,35 +10,40 @@ import (
 )
 
 const (
-	timeout  = 500 * time.Millisecond
-	maxTries = 10
+	timeout           = 500 * time.Millisecond
+	maxTries          = 10
+	maxInvalidPackets = 10
 )
 
 func Send(l link.Link, r io.Reader) error {
-	for i := range maxTries {
+	timeoutRetries, invalidPackets := 0, 0
+	for timeoutRetries < maxTries && invalidPackets < maxInvalidPackets {
 		if err := l.Send(&proto.Packet{Flags: proto.FlagSYN}); err != nil {
 			return err
 		}
 
 		p, err := l.Recv(timeout)
 		if err == link.ErrTimeout {
-			if i == maxTries-1 {
-				return errors.New("handshake failed")
-			}
+			timeoutRetries++
+			invalidPackets = 0
 			continue
 		}
+
 		if err != nil {
 			return err
 		}
 
 		if p.Flags.Has(proto.FlagSYN) &&
-			p.Flags.Has(proto.FlagACK) {
+			p.Flags.Has(proto.FlagACK) &&
+			p.Ack == 1 {
 			break
 		}
 
-		if i == maxTries-1 {
-			return errors.New("handshake failed")
-		}
+		invalidPackets++
+	}
+
+	if timeoutRetries == maxTries || invalidPackets == maxInvalidPackets {
+		return errors.New("handshake failed")
 	}
 
 	_ = l.Send(&proto.Packet{
