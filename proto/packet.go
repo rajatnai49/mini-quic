@@ -60,6 +60,10 @@ func Decode(b []byte) (*Packet, error) {
 		Ack:   binary.BigEndian.Uint32(b[4:8]),
 		Flags: Flags(b[8]),
 	}
+
+	if n > MaxPayload {
+		return nil, ErrPayloadSize
+	}
 	if n > 0 {
 		p.Payload = make([]byte, n)
 		copy(p.Payload, b[HeaderSize:])

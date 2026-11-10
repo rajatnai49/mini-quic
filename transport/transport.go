@@ -15,13 +15,16 @@ const (
 )
 
 func Send(l link.Link, r io.Reader) error {
-	for i := 0; i < maxTries; i++ {
+	for i := range maxTries {
 		if err := l.Send(&proto.Packet{Flags: proto.FlagSYN}); err != nil {
 			return err
 		}
 
 		p, err := l.Recv(timeout)
 		if err == link.ErrTimeout {
+			if i == maxTries-1 {
+				return errors.New("handshake failed")
+			}
 			continue
 		}
 		if err != nil {
@@ -63,7 +66,7 @@ func Send(l link.Link, r io.Reader) error {
 
 			acked := false
 
-			for i := 0; i < maxTries; i++ {
+			for range maxTries {
 				if err := l.Send(pkt); err != nil {
 					return err
 				}
@@ -105,7 +108,7 @@ func Send(l link.Link, r io.Reader) error {
 		Flags: proto.FlagFIN,
 	}
 
-	for i := 0; i < maxTries; i++ {
+	for range maxTries {
 		if err := l.Send(fin); err != nil {
 			return err
 		}
