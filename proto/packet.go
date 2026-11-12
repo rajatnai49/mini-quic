@@ -20,7 +20,7 @@ const (
 )
 
 type Packet struct {
-	Seq_N   uint32
+	Seq     uint32
 	Ack     uint32
 	Flags   Flags
 	Payload []byte
@@ -39,7 +39,7 @@ func (p *Packet) Encode() ([]byte, error) {
 
 	buf := make([]byte, HeaderSize+len(p.Payload))
 
-	binary.BigEndian.PutUint32(buf[0:4], p.Seq_N)
+	binary.BigEndian.PutUint32(buf[0:4], p.Seq)
 	binary.BigEndian.PutUint32(buf[4:8], p.Ack)
 	buf[8] = byte(p.Flags)
 	binary.BigEndian.PutUint16(buf[9:11], uint16(len(p.Payload)))
@@ -56,7 +56,7 @@ func Decode(b []byte) (*Packet, error) {
 		return nil, ErrBadLen
 	}
 	p := &Packet{
-		Seq_N: binary.BigEndian.Uint32(b[0:4]),
+		Seq:   binary.BigEndian.Uint32(b[0:4]),
 		Ack:   binary.BigEndian.Uint32(b[4:8]),
 		Flags: Flags(b[8]),
 	}
@@ -72,5 +72,5 @@ func Decode(b []byte) (*Packet, error) {
 }
 
 func (f Flags) Has(flag Flags) bool {
-    return f&flag != 0
+	return f&flag != 0
 }

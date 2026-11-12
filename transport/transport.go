@@ -22,7 +22,7 @@ func Send(l link.Link, r io.Reader) error {
 			return err
 		}
 
-		p, err := l.Recv(timeout)
+		p, _, err := l.Recv(timeout)
 		if err == link.ErrTimeout {
 			timeoutRetries++
 			invalidPackets = 0
@@ -64,7 +64,7 @@ func Send(l link.Link, r io.Reader) error {
 
 		if n > 0 {
 			pkt := &proto.Packet{
-				Seq_N:   seq,
+				Seq:     seq,
 				Flags:   proto.FlagDATA,
 				Payload: append([]byte(nil), buf[:n]...),
 			}
@@ -76,7 +76,7 @@ func Send(l link.Link, r io.Reader) error {
 					return err
 				}
 				for {
-					ack, err := l.Recv(timeout)
+					ack, _, err := l.Recv(timeout)
 					if err == link.ErrTimeout {
 						break
 					}
@@ -109,7 +109,7 @@ func Send(l link.Link, r io.Reader) error {
 	}
 
 	fin := &proto.Packet{
-		Seq_N: seq,
+		Seq:   seq,
 		Flags: proto.FlagFIN,
 	}
 
@@ -118,7 +118,7 @@ func Send(l link.Link, r io.Reader) error {
 			return err
 		}
 
-		p, err := l.Recv(timeout)
+		p, _, err := l.Recv(timeout)
 		if err == link.ErrTimeout {
 			continue
 		}
@@ -142,7 +142,7 @@ func Receive(l link.Link, w io.Writer) error {
 	}
 
 	for {
-		p, err := l.Recv(30 * time.Second)
+		p, _, err := l.Recv(30 * time.Second)
 		if err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func Receive(l link.Link, w io.Writer) error {
 	var expected uint32
 
 	for {
-		p, err := l.Recv(30 * time.Second)
+		p, _, err := l.Recv(30 * time.Second)
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func Receive(l link.Link, w io.Writer) error {
 			}
 
 		case p.Flags.Has(proto.FlagDATA):
-			if p.Seq_N == expected {
+			if p.Seq == expected {
 				if _, err := w.Write(p.Payload); err != nil {
 					return err
 				}
@@ -184,12 +184,12 @@ func Receive(l link.Link, w io.Writer) error {
 			}
 
 		case p.Flags.Has(proto.FlagFIN):
-			if p.Seq_N != expected {
+			if p.Seq != expected {
 				continue
 			}
 
 			return l.Send(&proto.Packet{
-				Seq_N: p.Seq_N,
+				Seq:   p.Seq,
 				Ack:   expected + 1,
 				Flags: proto.FlagFIN | proto.FlagACK,
 			})
